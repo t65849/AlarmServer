@@ -1,0 +1,23 @@
+TG Alarm List :
+    TG-X:00:Media Gateway Sartup
+    TG-X:01:Outofsync E1-Trunk[%d,%d] !
+    TG-X:02:Sync recovered E1-Trunk[%d,%d] .
+    TG-X:03:SG[%d] Ping Timeout !
+    TG-X:04:SG[%d] Ping Ack.
+    TG-X:11:Destination MS[%d] Ping Timeout !
+    TG-X:12:Destination MS[%d] Ping Acked.
+    TG-X:21:Oammon Error=0x%x : error message !
+    TG-X:99:Media Gateway Shutdown
+
+MS Alarm List :
+    MS-X:00:Media Server Startup
+    MS-X:21:WinSock Server socket Error Code = %d
+    MS-X:22:WinSock Server Bind Error Code = %d
+    MS-X:23:WinSock Server Listen Error Code = %d
+    MS-X:24:WinSock Server Select Error Code = %d
+    MS-X:31:Loss of T1/E1 signal on board %d (for Dialogic board only)
+    MS-X:32:Recorver of T1/E1 signal on board %d (for Dialogic board only)
+    MS-X:51:playfile : [%s] invalid !
+    MS-X:52:playfile : [%s] not found!
+    MS-X:53:playfile : [%s] open failed !
+    MS-X:99:Media Server Shutdown

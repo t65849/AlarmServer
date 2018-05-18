@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<!--<html xmlns="http://www.w3.org/1999/xhtml">-->
+
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="../bootstrap/bootstrap.css" rel="stylesheet" />
+    <!--<link href="../font-awesome-4.1.0/css/font-awesome.min.css" rel="stylesheet" />-->
+    <link href="../font-awesome-5.0.8/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link href="../font-awesome-5.0.8/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link href="../font-awesome-5.0.8/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link href="../font-awesome-5.0.8/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link href="../bootstrap/switch/bootstrap-switch.min.css" rel="stylesheet" />
+    <link href="../bootstrap/dataTables.bootstrap.css" rel="stylesheet" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>模組維護</title>
+    <style type="text/css">
+    </style>
+    <script type="text/javascript" src="../jquery/jquery-1.9.0.min.js"></script>
+    <script type="text/javascript" src="../bootstrap/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../bootstrap/bootbox/bootbox.min.js"></script>
+    <script type="text/javascript" src="../bootstrap/bootstrapValidator/bootstrapValidator.min.js"></script>
+    <script type="text/javascript" src="../bootstrap/dataTables/jquery.dataTables.js"></script>
+    <script type="text/javascript" src="../bootstrap/dataTables/dataTables.bootstrap.js"></script>
+    <script type="text/javascript" src="../bootstrap/switch/bootstrap-switch.min.js"></script>
+    <script type="text/javascript" src="../jquery/plugin/jquery.url/jquery.url.js"></script>
+    <script type="text/javascript">
+        var IDNumber = 2;
+        /*
+        var model_data = {
+            model: '123',
+            ID_data: [{
+                ID: 123,
+                description: 123
+            }]
+        }
+*/
+        $(document).ready(function () {
+            drawCollapse();
+            $('#modifyDiv').hide();
+            $('button[id="modify"]').hide();
+
+            $("#plus").on("click", function () {
+                $("#plusTable").append(
+                    '<label class="control-label">ID' + IDNumber + ': </label>'
+                ).append(
+                    $(document.createElement('tr'))
+                        .append('<td>ID代號: </td><td><input type="text" class="form-control" id="id' + IDNumber + '" placeholder="ID代號"></td>')
+                        .append('<td>ID描述: </td><td><input type="text" class="form-control" id="idc' + IDNumber + '" placeholder="ID敘述"></td>')
+                );
+                IDNumber++;
+            });
+            $("#insert").on("click", function () {
+                IDNumber = 2;
+                $("#plusTable").children().remove();
+                $("#plusTable").append(
+                    '<td><label class="control-label">ID1: </label></td>'
+                ).append(
+                    $(document.createElement('tr'))
+                        .append('<td>ID代號: </td><td><input type="text" class="form-control" id="id1" placeholder="ID代號"></td>')
+                        .append('<td>ID描述: </td><td><input type="text" class="form-control" id="idc1" placeholder="ID敘述"></td>'));
+            });
+            $("#changes").on("click", function () {
+                if ($("#model").val() == '') {
+                    alert("請輸入模組代號");
+                }
+                else {
+                    var insertData = {
+                        model: $("#model").val(),
+                        ID_data: []
+                    };
+                    for (var i = 1; i < IDNumber; i++) {
+                        if ($('#id' + i).val() != '') {
+                            if ($('#idc' + i).val() != '') {
+                                var data = {
+                                    ID: $('#id' + i).val(),
+                                    description: $('#idc' + i).val()
+                                }
+                            }
+                            else {
+                                var data = {
+                                    ID: $('#id' + i).val(),
+                                    description: ''
+                                }
+                            }
+                            insertData.ID_data[i - 1] = data;
+                        }
+                    }
+                    if (model_data.length == 0) {
+                        model_data[0] = insertData;
+                    }
+                    else {
+                        for (var element in model_data) {
+                            if (model_data[element].model == insertData.model) {
+                                //for (var ele in insertData)
+                                for (var idx in insertData.ID_data) {
+                                    if (model_data[element].ID_data.length == 0 || model_data[element].ID_data[0] == "") {
+                                        model_data[element].ID_data = insertData.ID_data;
+                                    }
+                                    else {
+                                        for (idy in model_data[element].ID_data) {
+                                            if ((model_data[element].ID_data[idy]).ID == insertData.ID_data[idx].ID) {
+                                                (model_data[element].ID_data[idy]).description = insertData.ID_data[idx].description;
+                                                break;
+                                            }
+                                            if (idy == model_data[element].ID_data.length - 1) {
+                                                (model_data[element].ID_data).push(insertData.ID_data[idx]);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                                break;
+                            }
+                            if (element == model_data.length - 1) {
+                                model_data[model_data.length] = insertData;
+                                break;
+                            }
+                        }
+
+                    }
+                    $('input[type="text"]').val('');
+                }
+                drawCollapse();
+            });
+            $("#store").on("click", function () {
+                var data = {
+                    'model_data': model_data
+                }
+                $.post("/api/dbStore", data, function (msg) {
+                    if (msg == 'change db fail') {
+                        alert('change db fail');
+                    }
+                    alert('change db success');
+                    location.reload();
+                })
+            });
+            $('button[id="modify"]').on("click", function () {
+                if ($('input[id="modify"]').val().length > 0) {
+                    if ($('input[id="modifyc"]').val().length > 0) {
+                        model_data[($('button[id="modify"]').val()).split('-')[0]].ID_data[($('button[id="modify"]').val()).split('-')[1]] = {
+                            ID: $('input[id="modify"]').val(),
+                            description: $('input[id="modifyc"]').val()
+                        };
+                    }
+                    else {
+                        model_data[($('button[id="modify"]').val()).split('-')[0]].ID_data[($('button[id="modify"]').val()).split('-')[1]] = {
+                            ID: $('input[id="modify"]').val(),
+                            description: ''
+                        };
+                    }
+
+                    $('#modifyDiv').hide();
+                    $('button[id="modify"]').hide();
+                    $("#plusTable").children().remove();
+                    drawCollapse();
+                }
+                else {
+                    alert("請輸入資料");
+                }
+
+            });
+
+        });
+
+        function drawCollapse() {
+            $(".panel-group").children().remove();
+            for (var element in model_data) {
+                if (model_data[element].ID_data == '')
+                    continue;
+                $(".panel-group")
+                    .append(
+                        $(document.createElement('div'))
+                            .attr('class', 'panel panel-default')
+                            .append(
+                                '<div class="panel-heading" role="tab" id="heading-' + model_data[element].model + '">' +
+                                '<h4 class="panel-title">' +
+                                '<a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapse-' + model_data[element].model + '" aria-expanded="true" aria-controls="collapse-' + model_data[element].model + '">' +
+                                model_data[element].model +
+                                '</a>' +
+                                '</h4>' +
+                                '</div>'
+                            )
+                            .append(
+                                '<div id="collapse-' + model_data[element].model + '" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="heading-' + model_data[element].model + '">' +
+                                '<div class="panel-body">' +
+                                '<table class="table" id="' + model_data[element].model + '_table"></table>'
+                            )
+                    )
+                $("#" + model_data[element].model + '_table')
+                    .append(
+                        '<thead>' +
+                        '<tr>' +
+                        '<th width="40%">ID代號</th>' +
+                        '<th width="40%">ID描述</th>' +
+                        '</tr>' +
+                        '</thead>'
+                    )
+                for (var ele in model_data[element].ID_data) {
+                    $("#" + model_data[element].model + '_table')
+                        .append(
+                            $(document.createElement('tr'))
+                                .append(
+                                    $(document.createElement('td'))
+                                        .append(model_data[element].ID_data[ele].ID)
+                                )
+                                .append(
+                                    $(document.createElement('td'))
+                                        .append(model_data[element].ID_data[ele].description)
+                                )
+                                .append(
+                                    $(document.createElement('td'))
+                                        .attr('align', 'right')
+                                        .append(
+                                            $(document.createElement('button'))
+                                                .attr('id', 'edit')
+                                                .attr('value', element + '-' + ele)
+                                                .click(function () {
+                                                    var model_index = Number($(this).val().split('-')[0]);
+                                                    var ID_index = Number($(this).val().split('-')[1]);
+                                                    $('#modifyDiv').show();
+                                                    $('button[id="modify"]').show();
+                                                    $('input[id="modify"]').val(model_data[model_index].ID_data[ID_index].ID);
+                                                    $('input[id="modifyc"]').val(model_data[model_index].ID_data[ID_index].description);
+
+
+                                                    $('button[id="modify"]').val($(this).val());
+                                                    $(window).scrollTop("0");
+                                                })
+                                                .append(
+                                                    $(document.createElement('span'))
+                                                        .attr('class', 'glyphicon glyphicon-pencil')
+                                                )
+                                        )
+                                        .append(
+                                            $(document.createElement('button'))
+                                                .attr('id', 'remove')
+                                                .attr('value', element + '-' + ele)
+                                                .click(function () {
+                                                    var model_index = Number($(this).val().split('-')[0]);
+                                                    var ID_index = Number($(this).val().split('-')[1]);
+
+                                                    if (model_data[model_index].ID_data.length == 1) {
+                                                        model_data[model_index].ID_data = [''];
+                                                    }
+                                                    else {
+                                                        for (var idx = ID_index; idx < model_data[model_index].ID_data.length - 1; idx++) {
+                                                            model_data[model_index].ID_data[idx] = model_data[model_index].ID_data[idx + 1];
+                                                        }
+                                                        model_data[model_index].ID_data.pop();
+                                                    }
+                                                    $("#plusTable").children().remove();
+                                                    drawCollapse();
+                                                })
+                                                .append(
+                                                    $(document.createElement('span'))
+                                                        .attr('class', 'glyphicon glyphicon-remove')
+                                                )
+                                        )
+                                )
+                        )
+                }
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div id="wrapper">
+        <div style="margin-top: 25px;">
+            <button type="button" class="btn btn-primary col-md-offset-5" data-toggle="modal" data-target="#myModal" id="insert">新增</button>
+            <button type="button" class="btn btn-primary" id="store">儲存</button>
+        </div>
+        <div class="col-xs-5 col-md-offset-3" style="margin-top: 25px;" id="modifyDiv">
+            <table>
+                <tr>
+                    <td>
+                        ID代號:
+                    </td>
+                    <td>
+                        <input type="text" class="form-control" id="modify" placeholder="ID代號"></input>
+                    </td>
+                    <td>
+                        ID敘述:
+                    </td>
+                    <td>
+                        <input type="text" class="form-control" id="modifyc" placeholder="ID敘述"></input>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <button id="modify" style="margin-top: 25px;">修改</button>
+        <div class="panel-group col-md-offset-3" id="accordion" role="tablist" aria-multiselectable="true" style="width:50%;margin-top: 40px;">
+        </div>
+
+    </div>
+    <!-- modal -->
+
+
+    <!-- Modal -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title" id="myModalLabel">新增模組</h4>
+                </div>
+                <div class="modal-body">
+                    <table id="insertTable">
+                        <tr>
+                            <label class="control-label">模組: </label>
+                        </tr>
+                        <tr>
+                            <input type="text" class="form-control" placeholder="Text input" id="model">
+                        </tr>
+                        <div id="plusTable"></div>
+                    </table>
+
+
+                    <button type="button" class="btn btn-success col-md-offset-11" id="plus">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" data-dismiss="modal" id="changes">新增</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</body>
+
+
+</div>
+
+</html>

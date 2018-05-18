@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="/bootstrap/bootstrap.css" rel="stylesheet" />
+    <!--<link href="../font-awesome-4.1.0/css/font-awesome.min.css" rel="stylesheet" />-->
+    <link href="../font-awesome-5.0.8/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link href="../font-awesome-5.0.8/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link href="../font-awesome-5.0.8/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link href="../font-awesome-5.0.8/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link href="../bootstrap/switch/bootstrap-switch.min.css" rel="stylesheet" />
+    <link href="../bootstrap/dataTables.bootstrap.css" rel="stylesheet" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>alarmServer訂閱</title>
+    <style type="text/css">
+    </style>
+    <script type="text/javascript" src="../jquery/jquery-1.9.0.min.js"></script>
+    <script type="text/javascript" src="../bootstrap/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../bootstrap/bootbox/bootbox.min.js"></script>
+    <script type="text/javascript" src="../bootstrap/bootstrapValidator/bootstrapValidator.min.js"></script>
+    <script type="text/javascript" src="../bootstrap/dataTables/jquery.dataTables.js"></script>
+    <script type="text/javascript" src="../bootstrap/dataTables/dataTables.bootstrap.js"></script>
+    <script type="text/javascript" src="../bootstrap/switch/bootstrap-switch.min.js"></script>
+    <script type="text/javascript" src="../jquery/plugin/jquery.url/jquery.url.js"></script>
+    <script type="text/javascript">
+        var mid = 'U9cfa95db81ec3ce7c2cf85e9c2ca85e9';
+        var user_data = [];
+        $(document).ready(function () {
+            $('#id3').click(function(){
+                var payload = {
+                    mid:$('#id1').val(),
+                    model:$('#id2').val()
+                }
+                 $.post('/del',payload);
+            })
+           
+        });
+
+    </script>
+</head>
+
+<body>
+
+        <input type="text" class="form-control" id="id1" placeholder="MID">
+        <input type="text" class="form-control" id="id2" placeholder="MODEL">
+        <button id="id3">提交</button>
+</body>
+
+</html>

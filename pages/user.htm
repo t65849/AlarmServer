@@ -1,0 +1,412 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="/bootstrap/bootstrap.css" rel="stylesheet" />
+    <!--<link href="../font-awesome-4.1.0/css/font-awesome.min.css" rel="stylesheet" />-->
+    <link href="../font-awesome-5.0.8/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link href="../font-awesome-5.0.8/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link href="../font-awesome-5.0.8/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link href="../font-awesome-5.0.8/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link href="../bootstrap/switch/bootstrap-switch.min.css" rel="stylesheet" />
+    <link href="../bootstrap/dataTables.bootstrap.css" rel="stylesheet" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>alarmServer訂閱</title>
+    <style type="text/css">
+    </style>
+    <script type="text/javascript" src="../jquery/jquery-1.9.0.min.js"></script>
+    <script type="text/javascript" src="../bootstrap/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../bootstrap/bootbox/bootbox.min.js"></script>
+    <script type="text/javascript" src="../bootstrap/bootstrapValidator/bootstrapValidator.min.js"></script>
+    <script type="text/javascript" src="../bootstrap/dataTables/jquery.dataTables.js"></script>
+    <script type="text/javascript" src="../bootstrap/dataTables/dataTables.bootstrap.js"></script>
+    <script type="text/javascript" src="../bootstrap/switch/bootstrap-switch.min.js"></script>
+    <script type="text/javascript" src="../jquery/plugin/jquery.url/jquery.url.js"></script>
+    <script type="text/javascript">
+        var user_data = [];
+        $(document).ready(function () {
+            $('#subc__desc7').on("click", function () {
+                $('#subc__desc6').toggle();
+                $('#subc__desc7').toggle();
+                $('#subc__desc8').toggle();
+            });
+            $('#subc__desc8').on("click", function () {
+                $('#subc__desc6').toggle();
+                $('#subc__desc7').toggle();
+                $('#subc__desc8').toggle();
+            });
+            drawTable();
+            drawButtonText();
+            drawSubClassButton();
+            drawDelClassButton();
+        });
+        function drawSubClassButton() {
+            for (var element in model_data) {
+                $("#subc__desc3")
+                    .append(
+                        $(document.createElement('button'))
+                            .attr("value", element)
+                            .css("width", "80px")
+                            .append(model_data[element].model)
+                            .click(function () {
+                                var data = {
+                                    mid: mid,
+                                    model: model_data[$(this).val()].model,
+                                    thisModel_data: model_data[$(this).val()],
+                                    user_data: user_data
+                                }
+                                $.post('/api/subThisModel', data, function (msg) {
+                                    if (msg == 'success')
+                                        $("#subc__desc").html("<h2>模組:" + data.model + " 訂閱完成<h2>");
+                                    else
+                                        $("#subc__desc").html("<h2>發生錯誤請重新在試<h2>");
+                                    $("#subc__desc2").html("");
+                                    $("#subc__desc3").html("");
+                                    $("#subc__desc4").html("");
+                                    $("#subc__desc5").html("");
+                                    $("#subc__desc9").html("");
+                                    $("#subc__desc1").append(
+                                        $(document.createElement('button'))
+                                            .attr("id", "subc__button")
+                                            .click(function () {
+                                                window.location.href = '/login';
+                                                //window.location.href = '/pages/user';
+                                            })
+                                            .append("繼續訂閱")
+                                    )
+                                });
+
+                            })
+                    )
+            }
+            $("#subc__desc3")
+                .append(
+                    $(document.createElement('button'))
+                        .css("width", "80px")
+                        .append("訂閱全部")
+                        .click(function () {
+                            var data = {
+                                mid: mid,
+                                model_data: model_data,
+                            }
+                            $.post('/api/subAllModel', data, function (msg) {
+                                if (msg == 'success')
+                                    $("#subc__desc").html("<h2>全部模組訂閱完成<h2>");
+                                else
+                                    $("#subc__desc").html("<h2>發生錯誤請重新在試<h2>");
+                                $("#subc__desc2").html("");
+                                $("#subc__desc3").html("");
+                                $("#subc__desc4").html("");
+                                $("#subc__desc5").html("");
+                                $("#subc__desc9").html("");
+                                $("#subc__desc1").append(
+                                    $(document.createElement('button'))
+                                        .attr("id", "subc__button")
+                                        .click(function () {
+                                            window.location.href = '/login';
+                                            //window.location.href = '/pages/user';
+                                        })
+                                        .append("繼續訂閱")
+                                )
+                            });
+
+                        })
+                )
+        }
+        function drawDelClassButton() {
+            for (var element in model_data) {
+                $("#subc__desc4")
+                    .append(
+                        $(document.createElement('button'))
+                            .attr("value", element)
+                            .css("width", "80px")
+                            .append(model_data[element].model)
+                            .click(function () {
+                                var data = {
+                                    mid: mid,
+                                    model: model_data[$(this).val()].model,
+                                    todo: 'delThisModel'
+                                }
+                                $.post('/api/delModel', data, function (msg) {
+                                    if (msg == 'success')
+                                        $("#subc__desc").html("<h2>模組:" + data.model + " 取消訂閱完成<h2>");
+                                    else
+                                        $("#subc__desc").html("<h2>發生錯誤請重新在試<h2>");
+                                    $("#subc__desc2").html("");
+                                    $("#subc__desc3").html("");
+                                    $("#subc__desc4").html("");
+                                    $("#subc__desc5").html("");
+                                    $("#subc__desc9").html("");
+                                    $("#subc__desc1").append(
+                                        $(document.createElement('button'))
+                                            .attr("id", "subc__button")
+                                            .click(function () {
+                                                window.location.href = '/login';
+                                                //window.location.href = '/pages/user';
+                                            })
+                                            .append("繼續訂閱")
+                                    )
+                                });
+
+                            })
+                    )
+            }
+            $("#subc__desc4")
+                .append(
+                    $(document.createElement('button'))
+                        .attr("value", "allSub")
+                        .css("width", "80px")
+                        .append("取消全部")
+                        .click(function () {
+                            var data = {
+                                mid: mid,
+                                todo: 'delAllModel'
+                            }
+                            $.post('/api/delModel', data, function (msg) {
+                                if (msg == 'success')
+                                    $("#subc__desc").html("<h2>全部模組取消訂閱完成<h2>");
+                                else
+                                    $("#subc__desc").html("<h2>發生錯誤請重新在試<h2>");
+                                $("#subc__desc2").html("");
+                                $("#subc__desc3").html("");
+                                $("#subc__desc4").html("");
+                                $("#subc__desc5").html("");
+                                $("#subc__desc9").html("");
+                                $("#subc__desc1").append(
+                                    $(document.createElement('button'))
+                                        .attr("id", "subc__button")
+                                        .click(function () {
+                                            window.location.href = '/login';
+                                            //window.location.href = '/pages/user';
+                                        })
+                                        .append("繼續訂閱")
+                                )
+                            });
+
+                        })
+                )
+        }
+        function drawButtonText(msg) {
+            var payload = {
+                mid: mid
+            }
+            $.get("/api/listPDatasetInfoToShow", payload, function (msg) {
+                if (msg.result == true) {
+                    for (var i in msg.data)
+                        msg.data[i].ID = JSON.parse(msg.data[i].ID);
+
+                    user_data = msg.data;
+                    $('.single').each(function () {
+                        for (var i in msg.data) {
+                            if (msg.data[i].model == $(this).attr("model")) {
+                                for (var j in msg.data[i].ID) {
+                                    if (msg.data[i].ID[j] == $(this).attr("id")) {
+                                        $(this).append("取消訂閱");
+                                        $(this).attr("status", "disSub");
+                                        break;
+                                    }
+                                    if (j == msg.data[i].ID.length - 1) {
+                                        $(this).append("訂閱");
+                                        $(this).attr("status", "Sub");
+                                        break;
+                                    }
+                                }
+                                $(this).val(i);
+                                break;
+                            }
+                            else if (i == msg.data.length - 1) {
+                                $(this).append("訂閱");
+                                $(this).attr("status", "Sub");
+                                $(this).val('');
+                                break;
+                            }
+                        }
+                    });
+                }
+                else {
+                    $('.single').each(function () {
+                        $(this).append("訂閱");
+                        $(this).attr("status", "Sub");
+                    });
+                }
+
+            });
+        }
+        function drawTable() {
+            $("#subc__desc").children().remove();
+
+            for (var element in model_data) {
+                if (model_data[element].ID == '')
+                    continue;
+                $("#subc__desc")
+                    .append(
+                        $(document.createElement('table'))
+                            .attr('class', 'table table-striped table-hover')
+                            .attr('id', model_data[element].model + '_table')
+                            .css({ "width": "100%", "word-wrap": "break-word", "table-layout": "fixed" })
+                            .append(
+                                '<thead>' +
+                                '<tr>' +
+                                '<th width="10%">#</th>' +
+                                '<th width="20%">model</th>' +
+                                '<th width="30%">ID代號</th>' +
+                                '<th width="30%">ID描述</th>' +
+                                '<th width="20%"></th>' +
+                                '</tr>' +
+                                '</thead>'
+                            )
+                    )
+
+                for (var ele in model_data[element].ID) {
+                    $("#" + model_data[element].model + '_table')
+                        .append(
+                            $(document.createElement('tbody'))
+                                .append(
+                                    $(document.createElement('tr'))
+                                        .append(
+                                            $(document.createElement('td'))
+                                                .append(ele)
+                                        )
+                                        .append(
+                                            $(document.createElement('td'))
+                                                .append(model_data[element].model)
+                                        )
+                                        .append(
+                                            $(document.createElement('td'))
+                                                .append(model_data[element].ID[ele])
+                                        )
+                                        .append(
+                                            $(document.createElement('td'))
+                                                .append(model_data[element].description[ele])
+                                        )
+                                        .append(
+                                            $(document.createElement('td'))
+                                                .append(
+                                                    $(document.createElement('button'))
+                                                        .attr("model", model_data[element].model)
+                                                        .attr("id", model_data[element].ID[ele])
+                                                        .attr("class", "single")
+                                                        .css("width", "80px")
+                                                        .click(function () {
+                                                            var status = $(this).attr("status");
+                                                            var model = $(this).attr("model");
+                                                            var id = $(this).attr("id");
+                                                            var model_number = $(this).val();
+                                                            subButtonClick(status, model, id, model_number);
+                                                        })
+                                                )
+                                        )
+                                )
+                        )
+                }
+            }
+        }
+        function subButtonClick(status, model, id, model_number) {
+            var payload = {
+                mid: mid,
+                model: model,
+                todo: '',
+            }
+            if (status == 'Sub') {
+                if (model_number == '') {
+                    payload.todo = 'addSub';
+                    payload.ID = [];
+                    payload.ID[0] = id;
+                }
+                else {
+                    payload.todo = 'updateSub';
+                    (user_data[model_number].ID).push(id);
+                    payload.ID = user_data[model_number].ID;
+                }
+                $.post("/api/subContain", payload, function (msg) {
+                    if (msg == 'success')
+                        $("#subc__desc").html("<h2>訂閱完成<h2>");
+                    else
+                        $("#subc__desc").html("<h2>發生錯誤請重新在試<h2>");
+
+                    $("#subc__desc2").html("");
+                    $("#subc__desc3").html("");
+                    $("#subc__desc4").html("");
+                    $("#subc__desc5").html("");
+                    $("#subc__desc9").html("");
+                    $("#subc__desc1").append(
+                        $(document.createElement('button'))
+                            .attr("id", "subc__button")
+                            .click(function () {
+                                window.location.href = '/login';
+                                //window.location.href = '/pages/user';
+                            })
+                            .append("繼續訂閱")
+                    )
+
+                });
+            }
+            else {
+                if (user_data[model_number].ID.length == 1)
+                    payload.todo = 'deleteSub';
+
+                else {
+                    payload.todo = 'updateSub';
+                    for (var i in user_data[model_number].ID) {
+                        if (user_data[model_number].ID[i] == id) {
+                            (user_data[model_number].ID).splice(i, 1);
+                            payload.ID = user_data[model_number].ID;
+                            break;
+                        }
+                    }
+                }
+
+                $.post("/api/subContain", payload, function (msg) {
+                    if (msg == 'success')
+                        $("#subc__desc").html("<h2>已取消訂閱<h2>");
+                    else
+                        $("#subc__desc").html("<h2>發生錯誤請重新在試<h2>");
+                    $("#subc__desc2").html("");
+                    $("#subc__desc3").html("");
+                    $("#subc__desc4").html("");
+                    $("#subc__desc5").html("");
+                    $("#subc__desc9").html("");
+                    $("#subc__desc1").append(
+                        $(document.createElement('button'))
+                            .attr("id", "subc__button")
+                            .click(function () {
+                                window.location.href = '/login';
+                                //window.location.href = '/pages/user';
+                            })
+                            .append("繼續訂閱")
+                    )
+                });
+            }
+        }
+    </script>
+</head>
+
+<body>
+
+    <div style="text-align:center;margin-top:50px;font-size:30px;font-weight:bold;" id="subc__desc2">
+        alarmServer訂閱
+    </div>
+    <a id="subc__desc9">
+        <h3 style="background: #DDDDDD;text-align:center;" id="subc__desc7">開啟模組操作介面</h4>
+        <h3 style="background: #DDDDDD;text-align:center;display:none;" id="subc__desc8">關閉模組操作介面</h4>
+    </a>
+    <div id="subc__desc6" style="display:none;">
+        <div style="text-align:center;margin-top:30px;font-weight:bold;" id="subc__desc3">
+            <h4 style="background: #FFDDAA;">模組一鍵訂閱</h3>
+        </div>
+        <div style="text-align:center;font-weight:bold;" id="subc__desc4">
+            <h4 style="background: #FFDDAA;">模組一鍵取消訂閱</h3>
+        </div>
+    </div>
+    <div id="wrapper">
+        <h3 style="background: #A8D8FB;text-align:center;" id="subc__desc5">個別訂閱</h3>
+        <div align="center" id="subc__desc"></div>
+        <div align="center" id="subc__desc1"></div>
+    </div>
+
+</body>
+
+</html>

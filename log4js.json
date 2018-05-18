@@ -1,0 +1,16 @@
+{
+	"appenders": [
+		{
+            "level": "info",
+			 "type": "console"
+		},
+        {
+            "level": "info",
+            "type": "file",
+            "filename": "logs/alarm.log",
+            "maxLogSize": 20480000,
+            "backups": 30,
+            "category": "alarm"
+        }
+	]
+}

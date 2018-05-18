@@ -1,0 +1,245 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="../bootstrap/bootstrap.css" rel="stylesheet" />
+        <link href="../font-awesome-4.1.0/css/font-awesome.min.css" rel="stylesheet" />
+        <link href="../bootstrap/switch/bootstrap-switch.min.css" rel="stylesheet" />
+        <link href="../bootstrap/dataTables.bootstrap.css" rel="stylesheet" />
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>排班設定</title>
+        <style type="text/css">
+            body {
+                padding: 10px;
+            }
+            .info-addon {
+                min-width: 150px;
+                /** text-align: left; **/
+            }
+            .modal.modal-wide .modal-dialog {
+                width: 720px;
+            }
+            .modal-wide .modal-body {
+                overflow-y: auto;
+            }
+
+            table.dataTable thead .sorting,
+            table.dataTable thead .sorting_asc,
+            table.dataTable thead .sorting_desc,
+            table.dataTable thead .sorting_asc_disabled,
+            table.dataTable thead .sorting_desc_disabled {
+                background: 0 0;
+            }
+
+            table.dataTable thead .sorting_asc:after {
+                content: "\f0de";
+                float: right;
+                font-family: fontawesome;
+            }
+
+            table.dataTable thead .sorting_desc:after {
+                content: "\f0dd";
+                float: right;
+                font-family: fontawesome;
+            }
+
+            table.dataTable thead .sorting:after {
+                content: "\f0dc";
+                float: right;
+                font-family: fontawesome;
+                color: rgba(50,50,50,.5);
+            }
+        </style>
+        <script type="text/javascript" src="../jquery/jquery-1.9.0.min.js"></script>
+        <script type="text/javascript" src="../bootstrap/bootstrap.min.js"></script>
+        <script type="text/javascript" src="../bootstrap/bootbox/bootbox.min.js"></script>
+        <script type="text/javascript" src="../bootstrap/bootstrapValidator/bootstrapValidator.min.js"></script>
+        <script type="text/javascript" src="../bootstrap/dataTables/jquery.dataTables.js"></script>
+        <script type="text/javascript" src="../bootstrap/dataTables/dataTables.bootstrap.js"></script>
+        <script type="text/javascript" src="../bootstrap/switch/bootstrap-switch.min.js"></script>
+        <script type="text/javascript" src="../jquery/plugin/jquery.url/jquery.url.js"></script>
+        <script type="text/javascript">
+            var Enginners;
+            var $MainTable;
+            var Socket;
+
+            $(document).ready(function () {
+                try {
+                    Socket = io.connect('http://' + ServiceUrl);
+                    Socket.on('connect', function () {
+                        bootbox.hideAll();
+                    });
+                    Socket.on('connect_error', function (Err) {
+                        bootbox.hideAll();
+                        bootbox.alert('無法連線到伺服器');
+                    });
+                    Socket.on('ok', function (Action, Data) {
+                        Loaded();
+                        if (Action == 'query_enginners') {
+                            Enginners = Data.enginners;
+                            Refresh();
+                        } else if (Action == 'set_enginners') {
+                            ShowMessage('儲存成功');
+                            window.opener.Refresh();
+                        }
+                    });
+                    Socket.on('not_ok', function (Action, Data) {
+                        Loaded();
+                        if (Action == 'set_enginners') {
+                            ShowMessage('儲存失敗');
+                        }
+                    });
+                    Socket.emit('query_enginners', MailID);
+                } catch (e) {
+                    bootbox.hideAll();
+                    bootbox.alert('無法連線到伺服器：' + e.message);
+                }
+
+                $('#BtnSave').click(function () {
+                    var _Enginners = [];
+                    var $Tr = $('#TableEnginners tbody tr');
+                    for (var idx = 0; idx < $Tr.length; idx++) {
+                        var $Input = $($Tr[idx]).find('input');
+                        _Enginners[idx] = {
+                            EmployeeID: $($Input[0]).val(),
+                            Phone: $($Input[1]).val(),
+                            BackupEmployeeID: $($Input[2]).val(),
+                            BackupPhone: $($Input[3]).val(),
+                            ManagerEmployeeID: $($Input[4]).val(),
+                            ManagerPhone: $($Input[5]).val()
+                        }
+                    }
+                    Socket.emit('set_enginners', _Enginners, MailID);
+                });
+            });
+
+            var WeekDesc = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            function Refresh() {
+                var $Table = $('#TableEnginners tbody');
+                $Table.empty();
+                for (var index = 0; index < 7; index++) {
+                    var $Tr = $(document.createElement('tr'))
+                        .append(
+                            $(document.createElement('td')).html(WeekDesc[index])
+                        );
+                    if (Enginners != undefined && Enginners[index] != undefined) {
+                        $Tr.append(
+                            $(document.createElement('td'))
+                                .append($(document.createElement('input')).val(Enginners[index].EmployeeID))
+                        )
+                        .append(
+                            $(document.createElement('td'))
+                                .append($(document.createElement('input')).val(Enginners[index].Phone))
+                        )
+                        .append(
+                            $(document.createElement('td'))
+                                .append($(document.createElement('input')).val(Enginners[index].BackupEmployeeID))
+                        )
+                        .append(
+                            $(document.createElement('td'))
+                                .append($(document.createElement('input')).val(Enginners[index].BackupPhone))
+                        )
+                        .append(
+                            $(document.createElement('td'))
+                                .append($(document.createElement('input')).val(Enginners[index].ManagerEmployeeID))
+                        )
+                        .append(
+                            $(document.createElement('td'))
+                                .append($(document.createElement('input')).val(Enginners[index].ManagerPhone))
+                        )
+                    } else {
+                        $Tr.append($(document.createElement('td')).append($(document.createElement('input'))));
+                        $Tr.append($(document.createElement('td')).append($(document.createElement('input'))));
+                        $Tr.append($(document.createElement('td')).append($(document.createElement('input'))));
+                        $Tr.append($(document.createElement('td')).append($(document.createElement('input'))));
+                        $Tr.append($(document.createElement('td')).append($(document.createElement('input'))));
+                        $Tr.append($(document.createElement('td')).append($(document.createElement('input'))));
+                    }
+                    $Tr.append($(document.createElement('td')).html(index).hide());
+                    $('#TableEnginners').append($Tr);
+                }
+                $MainTable = $('#TableEnginners').dataTable({
+                    'columnDefs': [
+                        { 'searchable': false, 'sortable': false, 'targets': [0, 1, 2, 3, 4, 5, 6] }
+                    ],
+                    'aaSorting': [[7, 'asc']],
+                    'autoWidth': false,
+                    'bPaginate': false,
+                    'bFilter': false,
+                    'oLanguage': {
+                        'sLengthMenu': '每頁顯示 _MENU_ 筆資料',
+                        'sZeroRecords': '找不到資料',
+                        'sInfo': '',
+                        'sInfoEmpty': '',
+                        'sInfoFiltered': ' (從 _MAX_ 資料的查詢結果)',
+                        'sSearch': '快速搜尋：',
+                        'oPaginate': {
+                            'sFirst': '第一頁',
+                            'sPrevious': '上一頁',
+                            'sNext': '下一頁',
+                            'sLast': '最末頁'
+                        }
+                    }
+                });
+            }
+
+            function Loading() {
+                bootbox.dialog({
+                    message: '請稍後',
+                    title: '',
+                    closeButton: false
+                });
+            }
+
+            function Loaded() {
+                bootbox.hideAll();
+            }
+
+            function ShowMessage(Message) {
+                bootbox.alert({
+                    message: Message,
+                    title: ''
+                });
+            }
+        </script>
+    </head>
+    <body>
+        <div id="wrapper">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            排班清單
+                        </div>
+                        <div class="panel-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-bordered table-hover" id="TableEnginners">
+                                    <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>主要工程師</th>
+                                            <th>主要工程師電話</th>
+                                            <th>備援工程師</th>
+                                            <th>備援工程師電話</th>
+                                            <th>工程師主管</th>
+                                            <th>工程師主管電話</th>
+                                            <th class="hidden">#</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-2">
+                    <button class="btn-primary form-control" id="BtnSave">儲存</button>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

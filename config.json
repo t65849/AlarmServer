@@ -1,0 +1,26 @@
+{
+    "udp_port": 33333,
+    "post_host": "172.31.7.163",
+    "post_port": 33334,
+    "post_path": "",
+    "op_host": "172.31.7.163",
+    "op_port": 7433,
+    "modules": [
+        {
+            "module_id": "SMI Server"
+        },
+        {
+            "module_id": "Snapin Manager"
+        },
+        {
+            "module_id": "SAP Mail Service"
+        }
+    ],
+    "message_channel_id": "1570936260",
+    "message_channel_secret": "5995cb896599eb86cd6e5d8b4f82ce58",
+    "message_channel_access_token": "3rByJlXT5ibJDC5EHHvp0K03a2bpUZx432LxY7bWkRlyNSaqgPA63UWfnvqi06EANiMrvt0s2OEoc32ewQ9+KxItbryLrXjvYh+cgbkYazkUIFWxd5zlQ5GUl+TyeGsGA6puLZ6QKvvk7F9rZkJ/DAdB04t89/1O/w1cDnyilFU=",
+    "login_channel_id": "1570936992",
+    "login_channel_secret": "6f85b7f7040c3dddcbede967cf4f6c31",
+    "login_redirect_uri": "http://172.31.7.163:7433",
+    "AUTH_TOKEN": ""
+}
