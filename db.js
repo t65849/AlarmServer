@@ -1,11 +1,11 @@
-var host = 'alarmdb.mysql.database.azure.com';
-var user = 's96103092003@alarmdb';
-var password = 'Qqq12345';
-var database = 'alarmdb';
+var user = 'ticcapi';
+var password = 'tccapi';
+var server = '172.31.7.163'
+var database = 'AlarmServerDB';
 
 module.exports = {
-    host : host,
-    user : user,
-    password : password,
-    database : database,
+    server: server,
+    user: user,
+    password: password,
+    database: database,
 };

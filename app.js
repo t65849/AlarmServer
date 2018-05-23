@@ -1,4 +1,4 @@
-﻿// Application Log
+// Application Log
 //172.31.9.66
 var log4js = require('log4js');
 var log4js_extend = require('log4js-extend');
@@ -112,7 +112,8 @@ var port = process.env.PORT || config.op_port;//////////////////////////////////
 var express = require('express');
 var bodyParser = require('body-parser');
 //var hashtable = require(__dirname + '\\hashtable');
-var mysql = require('mysql'); // mysql
+var mssql = require('mssql');
+
 var fs = require('fs');
 var url = require("url");
 var app = express();
@@ -121,17 +122,26 @@ var server = http.Server(app).listen(port);
 var jwtDecode = require('jwt-decode');
 
 var path = process.env.deployPath || '';
-var db = require('./db');
-//mysql----------------------------------------------------------------------------------------------------------------
-var pool = mysql.createPool({
-    connectionLimit: 100,
-    host: db.host, //如果database在另一台機器上，要改這裡
-    user: db.user,
-    password: db.password,
-    database: db.database, //要抓的database名稱
-    waitForConnections: true
-});
+var msdb = require('./db');
 
+
+mssql.connect({
+    user: msdb.user,
+    password: msdb.password,
+    server: msdb.server,   //這邊要注意一下!!
+    database: msdb.database,
+    encrypt: false,
+    options: {  
+        encrypt: false // Use this if you're on Windows Azure  
+    },  
+    pool: {  
+        min: 0,  
+        idleTimeoutMillis: 3000  
+    }  
+}, function (err) {
+    if(err) logger.info(err);
+    else logger.info('mssql_conncet')
+});
 route(app);
 function route(app) {
     app.use(bodyParser.urlencoded({
@@ -172,6 +182,35 @@ function route(app) {
         });
     });
 
+    app.get('/pages/del', function (req, res) {
+        //logger.info('GET /config request');
+        res.header("Content-Type", 'text/html');
+        fs.readFile(__dirname + '/pages/del.html', 'utf8', function (err, data) {
+            if (err) {
+                res.send(err);
+            }
+            res.send(data);
+        });
+    });
+    app.post('/del', function (request, response) {
+        var mid = request.body.mid;
+        var model = request.body.model;
+        var sql = "DELETE FROM alarmdb.subcontain WHERE model = '" + model + "' AND mid = '" + mid + "'";
+        var connection = new mssql.Request();
+        connection.query(sql, function (err, result) {
+            if (err) {
+                throw err;
+                logger.info('/api/del error: ' + err);
+                response.send('error');
+            }
+            else {
+                response.send('success');
+                logger.info('/api/del success');
+                 
+            }
+        });
+
+    });
     //////////////////////////////////////////////////////////////////////////////////////
     app.get("/login", function (request, response) {
         logger.info('-------------------------------------------login-------------------------------------------');
@@ -184,53 +223,50 @@ function route(app) {
         }
 
     });//
+   
     app.get('/pages/AlarmMod', function (req, res) {
         //res.header("Content-Type", 'text/html');
         var model_data = [];
-        pool.getConnection(function (error, connection) {
-            if (error) logger.info('/pages/AlarmMod DB error: ' + error);
+        var connection = new mssql.Request();
+        connection.query("SELECT * FROM alarmdb.alarmdata ", function (err, result) {
+            var sql;
+            if (err)
+                logger.info('/pages/AlarmMod DB error: ' + err);
             else {
-                connection.query("SELECT * FROM alarmdata ", function (err, result) {
-                    var sql;
-                    if (err)
-                        logger.info('/pages/AlarmMod DB error: ' + err);
-                    else {
-                        fs.readFile(__dirname + '/pages/AlarmMod.htm', 'utf8', function (err, data) {
-                            if (err) {
-                                logger.info(err);
-                            }
-                            else {
-                                for (var idx in result) {
-                                    model_data[idx] = {
-                                        model: result[idx].model,
-                                        ID_data: []
-                                    }
-
-                                    if (result[idx].ID != '""') {
-                                        var ID = JSON.parse(result[idx].ID);
-                                        var description = JSON.parse(result[idx].description);
-                                        for (var idy = 0; idy < ID.length; idy++) {
-                                            model_data[idx].ID_data[idy] = {
-                                                ID: ID[idy],
-                                                description: description[idy]
-                                            }
-                                        }
-                                    }
-
-                                }
-                                logger.info(model_data);
-
-                                data = data + '<script type="text/javascript"> var model_data = ' + JSON.stringify(model_data) + ';</script>';
-                            }
-                            res.send(data);
-                            connection.release();
-                        });
+                fs.readFile(__dirname + '/pages/AlarmMod.htm', 'utf8', function (err, data) {
+                    if (err) {
+                        logger.info(err);
                     }
+                    else {
+                        result = result.recordset;
+                        for (var idx in result) {
+                            model_data[idx] = {
+                                model: result[idx].model,
+                                ID_data: []
+                            }
+
+                            if (result[idx].ID != '""') {
+                                var ID = JSON.parse(result[idx].ID);
+                                var description = JSON.parse(result[idx].description);
+                                for (var idy = 0; idy < ID.length; idy++) {
+                                    model_data[idx].ID_data[idy] = {
+                                        ID: ID[idy],
+                                        description: description[idy]
+                                    }
+                                }
+                            }
+
+                        }
+                        logger.info(model_data);
+
+                        data = data + '<script type="text/javascript"> var model_data = ' + JSON.stringify(model_data) + ';</script>';
+                    }
+                    res.send(data);
+                    //connection.release();
                 });
             }
         });
     });
-    
         app.get('/pages/user', function (req, res) {
             res.header("Content-Type", 'text/html');
     
@@ -256,14 +292,13 @@ function route(app) {
                         }
                         req.header("Content-Type", 'text/html');
                         var model_data = [];
-                        pool.getConnection(function (error, connection) {
-                            if (error) logger.info('/pages/user DB error: ' + error);
-                            else {
-                                connection.query("SELECT * FROM alarmdata ", function (err, result) {
+                        var connection = new mssql.Request();
+                        connection.query("SELECT * FROM alarmdb.alarmdata ", function (err, result) {
                                     var sql;
                                     if (err)
                                         logger.info('/pages/user DB error: ' + err);
                                     else {
+                                        result = result.recordset;
                                         fs.readFile(__dirname + '/pages/user.htm', 'utf8', function (err, data) {
                                             if (err) {
                                                 logger.info('fs.readFile /pages/user.htm: ' + err);
@@ -282,12 +317,9 @@ function route(app) {
                                                 'var mid = "' + mid + '";</script>';
                                             }
                                             res.send(data);
-                                            connection.release();
                                         });
                                     }
                                 });
-                            }
-                        });
                     }
                     else {
                         logger.info('加入好友畫面');
@@ -318,34 +350,29 @@ function route(app) {
             }
         }
         logger.info('/api/dbStore_model_data: ' + JSON.stringify(model_data));
-        pool.getConnection(function (error, connection) {
-            if (error) logger.info('saveToAlarmDB error: ' + error);
+        var connection = new mssql.Request();
+        connection.query("DELETE FROM alarmdb.iddescription ", function (err, result) {
+            var sql;
+            if (err) {
+                logger.info('dbStore_DescriptionDB delete error: ' + err);
+            }
             else {
-                connection.query("DELETE FROM iddescription ", function (err, result) {
-                    var sql;
-                    if (err) {
-                        logger.info('dbStore_DescriptionDB delete error: ' + err);
-                    }
-                    else {
-                        for (var idx = 0; idx < storeData.length; idx++) {
-                            //logger.info(storeData[idx].model + "   " + storeData[idx].ID);
-                            saveToAlarmDB(model_data[idx].model, model_data[idx].ID, model_data[idx].description, function (rst) {
-                                if (rst)
-                                    times++;
-                                else {
-                                    response.send("change alarmDB fail");
-                                }
-                                if (times == storeData.length) {
-                                    response.send("change alarmDB success");
-                                }
-                            });
-                            for (var idy in storeData[idx].ID_data) {
-                                saveToDescriptionDB(model_data[idx].model, storeData[idx].ID_data[idy].ID, storeData[idx].ID_data[idy].description);
-                            }
+                for (var idx = 0; idx < storeData.length; idx++) {
+                    //logger.info(storeData[idx].model + "   " + storeData[idx].ID);
+                    saveToAlarmDB(model_data[idx].model, model_data[idx].ID, model_data[idx].description, function (rst) {
+                        if (rst)
+                            times++;
+                        else {
+                            response.send("change alarmDB fail");
                         }
+                        if (times == storeData.length) {
+                            response.send("change alarmDB success");
+                        }
+                    });
+                    for (var idy in storeData[idx].ID_data) {
+                        saveToDescriptionDB(model_data[idx].model, storeData[idx].ID_data[idy].ID, storeData[idx].ID_data[idy].description);
                     }
-                    connection.release();
-                });
+                }
             }
         });
 
@@ -360,30 +387,23 @@ function route(app) {
         logger.info("/api/subThisModel request.body: " + JSON.stringify(request.body, null, 2));
         for (var i in user_data) {
             if (user_data[i].model == model) {
-                sql = "UPDATE subcontain SET ID = '" + JSON.stringify(thisModel_data.ID) + "' WHERE model = '" + model + "' AND mid = '" + mid + "'";
+                sql = "UPDATE alarmdb.subcontain SET ID = '" + JSON.stringify(thisModel_data.ID) + "' WHERE model = '" + model + "' AND mid = '" + mid + "'";
                 break;
             }
-            sql = "INSERT INTO subcontain (mid, model, ID) VALUES ('" + mid + "', '" + model + "', '" + JSON.stringify(thisModel_data.ID) + "')";
+            sql = "INSERT INTO alarmdb.subcontain (mid, model, ID) VALUES ('" + mid + "', '" + model + "', '" + JSON.stringify(thisModel_data.ID) + "')";
         }
         if (sql == null) {
-            sql = "INSERT INTO subcontain (mid, model, ID) VALUES ('" + mid + "', '" + model + "', '" + JSON.stringify(thisModel_data.ID) + "')";
+            sql = "INSERT INTO alarmdb.subcontain (mid, model, ID) VALUES ('" + mid + "', '" + model + "', '" + JSON.stringify(thisModel_data.ID) + "')";
         }
-        pool.getConnection(function (error, connection) {
-            if (error) {
-                logger.info('/api/subThisModel DB error: ' + error);
+        var connection = new mssql.Request();
+        connection.query(sql, function (err, result) {
+            if (err) {
+                logger.info('/api/subThisModel DB error: ' + err);
+                response.send('error');
             }
             else {
-                connection.query(sql, function (err, result) {
-                    if (err) {
-                        logger.info('/api/subThisModel DB error: ' + err);
-                        response.send('error');
-                    }
-                    else {
-                        response.send('success');
-                        logger.info('/api/subThisModel success');
-                        connection.release();
-                    }
-                });
+                response.send('success');
+                logger.info('/api/subThisModel success');
             }
         });
 
@@ -394,7 +414,7 @@ function route(app) {
         var model_data = request.body.model_data;
         logger.info("/api/subAllModel request.body: " + JSON.stringify(request.body, null, 2));
 
-        var sql = "DELETE FROM subcontain WHERE mid = '" + mid + "'";
+        var sql = "DELETE FROM alarmdb.subcontain WHERE mid = '" + mid + "'";
         var times = 0;
 
 
@@ -411,34 +431,28 @@ function route(app) {
             response.send("error");
             return;
         }
-
-        pool.getConnection(function (error, connection) {
-            if (error) logger.info('/api/subAllModel DB error: ' + error);
+        var connection = new mssql.Request();
+        connection.query(sql, function (err, result) {
+            if (err) {
+                throw err;
+                logger.info('/api/subAllModel DB error: ' + err);
+            }
             else {
-                connection.query(sql, function (err, result) {
-                    if (err) {
-                        throw err;
-                        logger.info('/api/subAllModel DB error: ' + err);
-                    }
-                    else {
-                        logger.info('/api/subAllModel success');
-                        for (var i in model_data) {
-                            saveToSubDB(mid, model_data[i].model, model_data[i].ID, function (rst) {
-                                if (rst)
-                                    times++;
-                                else {
-                                    logger.info("/api/subAllModel change SubDB fail");
-                                    response.send("error");
-                                }
-                                if (times == model_data.length) {
-                                    logger.info("/api/subAllModel change SubDB success");
-                                    response.send("success");
-                                }
-                            });
+                logger.info('/api/subAllModel success');
+                for (var i in model_data) {
+                    saveToSubDB(mid, model_data[i].model, model_data[i].ID, function (rst) {
+                        if (rst)
+                            times++;
+                        else {
+                            logger.info("/api/subAllModel change SubDB fail");
+                            response.send("error");
                         }
-                    }
-                    connection.release();
-                });
+                        if (times == model_data.length) {
+                            logger.info("/api/subAllModel change SubDB success");
+                            response.send("success");
+                        }
+                    });
+                }
             }
         });
 
@@ -464,32 +478,26 @@ function route(app) {
                 logger.info('/api/delModel model is null');
                 flag = 1;
             }
-            var sql = "DELETE FROM subcontain WHERE mid = '" + mid + "' AND model = '" + model + "'";
+            var sql = "DELETE FROM alarmdb.subcontain WHERE mid = '" + mid + "' AND model = '" + model + "'";
         }
         else if (todo == 'delAllModel')
-            var sql = "DELETE FROM subcontain WHERE mid = '" + mid + "'";
+            var sql = "DELETE FROM alarmdb.subcontain WHERE mid = '" + mid + "'";
 
         if (flag == 1) {
             response.send("error");
             return;
         }
-
-        pool.getConnection(function (error, connection) {
-            if (error) logger.info('/api/delModel DB error: ' + error);
+        var connection = new mssql.Request();
+        connection.query(sql, function (err, result) {
+            if (err) {
+                throw err;
+                logger.info('/api/delModel DB error: ' + err);
+                response.send("error");
+            }
             else {
-                connection.query(sql, function (err, result) {
-                    if (err) {
-                        throw err;
-                        logger.info('/api/delModel DB error: ' + err);
-                        response.send("error");
-                    }
-                    else {
-                        logger.info("/api/delModel change SubDB success");
-                        response.send("success");
+                logger.info("/api/delModel change SubDB success");
+                response.send("success");
 
-                    }
-                    connection.release();
-                });
             }
         });
 
@@ -504,67 +512,58 @@ function route(app) {
         switch (todo) {
             case 'addSub':
                 logger.info('addSub')
-                sql = "INSERT INTO subcontain (mid, model, ID) VALUES ('" + mid + "', '" + model + "', '" + JSON.stringify(ID) + "')";
+                sql = "INSERT INTO alarmdb.subcontain (mid, model, ID) VALUES ('" + mid + "', '" + model + "', '" + JSON.stringify(ID) + "')";
                 break;
             case 'updateSub':
                 logger.info('updateSub')
-                sql = "UPDATE subcontain SET ID = '" + JSON.stringify(ID) + "' WHERE model = '" + model + "' AND mid = '" + mid + "'";
+                sql = "UPDATE alarmdb.subcontain SET ID = '" + JSON.stringify(ID) + "' WHERE model = '" + model + "' AND mid = '" + mid + "'";
                 break;
             case 'deleteSub':
-                sql = "DELETE FROM subcontain WHERE model = '" + model + "' AND mid = '" + mid + "'";
+                sql = "DELETE FROM alarmdb.subcontain WHERE model = '" + model + "' AND mid = '" + mid + "'";
                 break;
         }
-        pool.getConnection(function (error, connection) {
-            if (error) logger.info('/api/subContain DB error: ' + error);
-            else {
-                connection.query(sql, function (err, result) {
-                    if (err) {
-                        logger.info('/api/subContain DB error: ' + err);
-                        response.send('error');
-                    }
-                    else {
-                        response.send('success');
-                        logger.info('/api/subContain success');
-                        connection.release();
-                    }
-                });
+        var connection = new mssql.Request();
+        connection.query(sql, function (err, result) {
+            if (err) {
+                logger.info('/api/subContain DB error: ' + err);
+                response.send('error');
             }
-
+            else {
+                response.send('success');
+                logger.info('/api/subContain success');
+            }
         });
 
     });
     app.get('/api/listPDatasetInfoToShow', function (request, response) {
         var mid = request.query.mid;
         logger.info(mid);
-        pool.getConnection(function (error, connection) {
-            if (error) logger.info('/api/listPDatasetInfoToShow DB error: ' + error);
+        var connection = new mssql.Request();
+        connection.query("SELECT ID, model FROM alarmdb.subcontain WHERE mid='" + mid + "'", function (err, result) {
+            var rst = {
+                result: '',
+                data: []
+            };
+            if (err)
+                logger.info('/api/listPDatasetInfoToShow DB error: ' + err);
             else {
-                connection.query("SELECT ID, model FROM subcontain WHERE mid='" + mid + "'", function (err, result) {
-                    var rst = {
-                        result: '',
-                        data: []
+                result = result.recordset;
+                if (result[0] == null) {
+                    rst = {
+                        result: false,
                     };
-                    if (err)
-                        logger.info('/api/listPDatasetInfoToShow DB error: ' + err);
-                    else {
-                        if (result == '') {
-                            rst = {
-                                result: false,
-                            };
-                        }
-                        else {
-                            rst = {
-                                result: true,
-                                data: result
-                            };
-                        }
-                        logger.info('/api/listPDatasetInfoToShow: ' + JSON.stringify(result, null, 2));
+                }
+                else {
+                    
+                    rst = {
+                        result: true,
+                        data: result
+                    };
+                }
+                logger.info('/api/listPDatasetInfoToShow: ' + JSON.stringify(result, null, 2));
 
-                        response.send(rst);
-                        connection.release();
+                response.send(rst);
 
-                    }
-                });
             }
         });
 
@@ -572,40 +571,37 @@ function route(app) {
 }///////////////////////////////////////////////////////////////////////////////////////////////////////////
 function sendMessage(model, ID, msg) {
     logger.info('sendMessage');
-    pool.getConnection(function (error, connection) {
-        if (error) logger.info('sendMessage error: ' + error);
+    var connection = new mssql.Request();
+    connection.query("SELECT mid, ID FROM alarmdb.subcontain WHERE model='" + model + "'", function (err, result) {
+        if (err)
+            logger.info('sendMessage error: ' + err);
         else {
-            connection.query("SELECT mid, ID FROM subcontain WHERE model='" + model + "'", function (err, result) {
-                if (err)
-                    logger.info('sendMessage error: ' + err);
-                else {
-                    
-                    connection.query("SELECT description FROM iddescription WHERE (model='" + model + "' AND ID = '" + ID + "')", function (err, result1) {
-						logger.info('result1: '+JSON.stringify(result1));
-                        for (var idx in result) {
-							var db_ID = JSON.parse(result[idx].ID);
-							for(var idy in db_ID){
-								if (db_ID[idy] == ID) {
-									var send_data = {
-										'to': result[idx].mid,
-										'messages': [
-											{
-												'type': 'text',
-												'text': '模組: ' + model + " ID: " + ID + "(" + result1[0].description + ") 訊息: " + msg
-											}
-										]
-									};
-									PostToLINE(send_data, config.message_channel_access_token, function (rst) {
-										if (rst) {
-											logger.info('PostToLINE success');
-										}
-									});
-									break;
-								}
-							}               
+            result = result.recordset;
+            var connection = new mssql.Request();
+            connection.query("SELECT description FROM alarmdb.iddescription WHERE (model='" + model + "' AND ID = '" + ID + "')", function (err, result1) {
+                logger.info('result1: ' + JSON.stringify(result1));
+                result1 = result1.recordset;
+                for (var idx in result) {
+                    var db_ID = JSON.parse(result[idx].ID);
+                    for (var idy in db_ID) {
+                        if (db_ID[idy] == ID) {
+                            var send_data = {
+                                'to': result[idx].mid,
+                                'messages': [
+                                    {
+                                        'type': 'text',
+                                        'text': '模組: ' + model + " ID: " + ID + "(" + result1[0].description + ") 訊息: " + msg
+                                    }
+                                ]
+                            };
+                            PostToLINE(send_data, config.message_channel_access_token, function (rst) {
+                                if (rst) {
+                                    logger.info('PostToLINE success');
+                                }
+                            });
+                            break;
                         }
-                    });
-                    connection.release();
+                    }
                 }
             });
         }
@@ -613,75 +609,61 @@ function sendMessage(model, ID, msg) {
 }
 function saveToDescriptionDB(model, ID, description) {
     logger.info('saveToDescriptionDB_data: ' + model + ', ' + ID + ', ' + description);
-    pool.getConnection(function (error, connection) {
-        if (error) logger.info('saveToAlarmDB error: ' + error);
+    var connection = new mssql.Request();
+    connection.query("INSERT INTO alarmdb.iddescription (model, ID, description) VALUES ('" + model + "', '" + ID + "', '" + description + "')", function (err, result) {
+        var sql;
+        if (err) {
+            logger.info('saveToDescriptionDB INSERT error: ' + err);
+        }
         else {
-            connection.query("INSERT INTO iddescription (model, ID, description) VALUES ('" + model + "', '" + ID + "', '" + description + "')", function (err, result) {
-                var sql;
-                if (err) {
-                    logger.info('saveToDescriptionDB INSERT error: ' + err);
-                }
-                else {
-                    logger.info('saveToDescriptionDB INSERT success: ');
-                }
-                connection.release();
-            });
+            logger.info('saveToDescriptionDB INSERT success: ');
         }
     });
 }
 function saveToAlarmDB(model, ID, description, callback) {
-    pool.getConnection(function (error, connection) {
-        if (error) logger.info('saveToAlarmDB error: ' + error);
+    var connection = new mssql.Request();
+    connection.query("SELECT * FROM alarmdb.alarmdata WHERE (model = '" + model + "')", function (err, result) {
+        var sql;
+        if (err) {
+            logger.info('saveToAlarmDB error: ' + err);
+            callback(false);
+        }
         else {
-            connection.query("SELECT * FROM alarmdata WHERE (model = '" + model + "')", function (err, result) {
-                var sql;
-                if (err) {
-                    logger.info('saveToAlarmDB error: ' + err);
+            result = result.recordset;
+            if (result[0] == null)
+                sql = "INSERT INTO alarmdb.alarmdata (model, ID, description) VALUES ('" + model + "', '" + JSON.stringify(ID) + "', '" + JSON.stringify(description) + "')";
+            else {
+                if (ID.length == 1 && ID[0] == null)
+                    sql = "DELETE FROM alarmdb.alarmdata WHERE model = '" + model + "'";
+                else
+                    sql = "UPDATE alarmdb.alarmdata SET ID = '" + JSON.stringify(ID) + "', description = '" + JSON.stringify(description) + "' WHERE model = '" + model + "'";
+            }
+            var connection = new mssql.Request();
+            connection.query(sql, function (error, result) {
+                logger.info(sql);
+                if (error) {
+                    logger.info(error);
                     callback(false);
                 }
                 else {
-                    if (result == '')
-                        sql = "INSERT INTO alarmdata (model, ID, description) VALUES ('" + model + "', '" + JSON.stringify(ID) + "', '" + JSON.stringify(description) + "')";
-                    else {
-                        if (ID.length == 1 && ID[0] == null)
-                            sql = "DELETE FROM alarmdata WHERE model = '" + model + "'";
-                        else
-                            sql = "UPDATE alarmdata SET ID = '" + JSON.stringify(ID) + "', description = '" + JSON.stringify(description) + "' WHERE model = '" + model + "'";
-                    }
-
-                    connection.query(sql, function (error, result) {
-                        logger.info(sql);
-                        if (error) {
-                            logger.info(error);
-                            callback(false);
-                        }
-                        else {
-                            logger.info(result.affectedRows + " record(s) updated/insert");
-                            callback(true);
-                        }
-                        connection.release();
-                    });
+                    logger.info(result.rowsAffected[0] + " record(s) updated/insert");
+                    callback(true);
                 }
             });
         }
     });
 }
 function saveToSubDB(mid, model, ID, callback) {
-    pool.getConnection(function (error, connection) {
-        if (error) logger.info('saveToSubDB error: ' + error);
+    var connection = new mssql.Request();
+    connection.query("INSERT INTO alarmdb.subcontain (mid, model, ID) VALUES ('" + mid + "', '" + model + "', '" + JSON.stringify(ID) + "')", function (err, result) {
+        var sql;
+        if (err) {
+            logger.info('saveToSubDB error: ' + err);
+            callback(false);
+        }
         else {
-            connection.query("INSERT INTO subcontain (mid, model, ID) VALUES ('" + mid + "', '" + model + "', '" + JSON.stringify(ID) + "')", function (err, result) {
-                var sql;
-                if (err) {
-                    logger.info('saveToSubDB error: ' + err);
-                    callback(false);
-                }
-                else {
-                    logger.info(result.affectedRows + " record(s) updated/insert");
-                    callback(true);
-                }
-                connection.release();
-            });
+            logger.info(result.rowsAffected[0] + " record(s) updated/insert");
+            callback(true);
         }
     });
 }
